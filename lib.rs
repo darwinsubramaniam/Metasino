@@ -154,9 +154,16 @@ mod metasino {
 
         /// We test if the default constructor does its job.
         #[ink::test]
-        fn default_works() {
+        fn initialize_with_player_count_equal_one() {
             let metasino = Metasino::new(100);
             assert_eq!(metasino.get_players_count(), 1);
+        }
+
+        #[ink::test]
+        #[should_panic = "Player already registered"]
+        fn register_same_player_will_fail() {
+            let mut metasino = Metasino::new(100);
+            metasino.register_player(100);
         }
     }
 }
