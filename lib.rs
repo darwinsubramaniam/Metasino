@@ -55,7 +55,7 @@ mod metasino {
         #[ink(constructor)]
         pub fn new(required_start_bet: Balance) -> Self {
             if required_start_bet <= 0 {
-                panic!("Start bet must be greater than 0");
+                panic!("Required start bet must be greater than 0");
             }
             let mut players: Vec<AccountId> = Vec::new();
             players.push(Self::env().caller());
@@ -152,18 +152,54 @@ mod metasino {
         /// Imports `ink_lang` so we can use `#[ink::test]`.
         use ink_lang as ink;
 
-        /// We test if the default constructor does its job.
+        /// Test constructor works as per expected.
+        /// - Test the required start bet value is as per the initialized.
+        /// - Test the initializer is the caller who initialized the contract.
+        /// - Test the total number of player is 1 when initialized.
+        /// - Test the total accumulated pot value is as start bet value put by the initializer caller.
+        /// - Test the state is 0 when initialized.
         #[ink::test]
         fn initialize_with_player_count_equal_one() {
+            let accounts = ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.alice);
             let metasino = Metasino::new(100);
+            assert_eq!(true, metasino.get_required_start_bet().eq(&100));
+            assert_eq!(accounts.alice, metasino.initializer);
             assert_eq!(metasino.get_players_count(), 1);
+            assert_eq!(metasino.get_accumulated_pot(), 100);
+            assert_eq!(metasino.get_table_state(), 0);
         }
 
         #[ink::test]
         #[should_panic = "Player already registered"]
         fn register_same_player_will_fail() {
+            let accounts = ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.alice);
             let mut metasino = Metasino::new(100);
             metasino.register_player(100);
         }
+
+        #[ink::test]
+        fn adding_new_player() {
+            let accounts = ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.alice);
+            let mut metasino = Metasino::new(100);
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.bob);
+            metasino.register_player(100);
+            assert_eq!(metasino.get_players_count(), 2);
+            assert_eq!(metasino.get_accumulated_pot(), 200);
+            assert_eq!(metasino.get_players()[0], accounts.alice);
+            assert_eq!(metasino.get_players()[1], accounts.bob);
+            assert_eq!(metasino.get_table_state(), 0);
+            assert_eq!(metasino.get_required_start_bet(), 100);
+        }
+
+        #[ink::test]
+        #[should_panic = "Required start bet must be greater than 0"]
+        fn initialize_with_zero_start_bet() {
+            Metasino::new(0);
+        }
+
+        // TODO - changing the person who is executing the contract.
     }
 }
