@@ -74,6 +74,12 @@ mod metasino {
 
         #[ink(message)]
         pub fn terminate(&mut self) {
+            if self.state == 1 {
+                panic!("Game is ongoing, cannot terminate");
+            }
+            if self.get_players().contains(&Self::env().caller()) {
+                panic!("Only the initializer can terminate the game");
+            }
             self.players.clear();
         }
 
@@ -83,6 +89,9 @@ mod metasino {
         /// error if new player places bet less or more than the required start bet.
         #[ink(message)]
         pub fn register_player(&mut self, start_bet: Balance) {
+            if self.state != 0 {
+                panic!("Table is already started/ended");
+            }
             let caller = Self::env().caller();
             if self.get_players_count() >= MAX_PLAYERS {
                 panic!("Max players reached");
@@ -105,6 +114,9 @@ mod metasino {
 
         #[ink(message)]
         pub fn start_game(&mut self) {
+            if self.state != 0 {
+                panic!("Table is already started/ended");
+            }
             if self.get_players_count() < MIN_PLAYERS {
                 panic!("Minimum {} players required to start the game", MIN_PLAYERS);
             }
@@ -200,6 +212,58 @@ mod metasino {
             Metasino::new(0);
         }
 
-        // TODO - changing the person who is executing the contract.
+        #[ink::test]
+        #[should_panic = "Minimum 3 players required to start the game"]
+        fn less_than_minimum_player_unable_to_start_game(){
+            let accounts = ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.alice);
+            let mut metasino = Metasino::new(100);
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.bob);
+            metasino.register_player(100);
+            metasino.start_game();
+        }
+
+        #[ink::test]
+        fn able_to_start_game(){
+            let accounts = ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.alice);
+            let mut metasino = Metasino::new(100);
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.bob);
+            metasino.register_player(100);
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.charlie);
+            metasino.register_player(100);
+            metasino.start_game();
+            assert_eq!(metasino.get_table_state(), 1);
+        }
+
+        #[ink::test]
+        #[should_panic = "Table is already started/ended"]
+        fn fail_to_add_player_when_game_status_started(){
+            let accounts = ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.alice);
+            let mut metasino = Metasino::new(100);
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.bob);
+            metasino.register_player(100);
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.charlie);
+            metasino.register_player(100);
+            metasino.start_game();
+
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.django);
+            metasino.register_player(100);
+        }
+
+        #[ink::test]
+        #[should_panic = "Game is ongoing, cannot terminate"]
+        fn should_not_allow_termination_if_table_game_in_started_state(){
+            let accounts = ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.alice);
+            let mut metasino = Metasino::new(100);
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.bob);
+            metasino.register_player(100);
+            ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.charlie);
+            metasino.register_player(100);
+            metasino.start_game();
+            metasino.terminate();
+        }
     }
 }
