@@ -72,14 +72,6 @@ mod metasino {
             }
         }
 
-        /// Constructor that initializes the `bool` value to `false`.
-        ///
-        /// Constructors can delegate to other constructors.
-        #[ink(constructor)]
-        pub fn default() -> Self {
-            Self::new(Default::default())
-        }
-
         #[ink(message)]
         pub fn terminate(&mut self) {
             self.players.clear();
@@ -163,7 +155,7 @@ mod metasino {
         /// We test if the default constructor does its job.
         #[ink::test]
         fn default_works() {
-            let metasino = Metasino::default();
+            let metasino = Metasino::new(100);
             assert_eq!(metasino.get_players_count(), 1);
         }
     }
