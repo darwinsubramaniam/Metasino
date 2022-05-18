@@ -63,11 +63,6 @@ mod metasino {
         /// Accumulated value in the pot.
         pot: Balance,
         /// The current state of the game.
-        /// Haven not figure out how to use ENUM in contract.
-        /// Temporary solutoin is to use u8 
-        /// 0: Not started
-        /// 1: Started
-        /// 3: Ended
         state: STATE,
     }
 
