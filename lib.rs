@@ -6,6 +6,10 @@ use ink_lang as ink;
 mod metasino {
 
     use ink_prelude::vec::Vec;
+    use ink_storage::traits::{
+        PackedLayout,
+        SpreadLayout,
+    };
 
     /// The maximum players alowed in the game participaction.
     const MAX_PLAYERS: u8 = 10;
@@ -20,8 +24,8 @@ mod metasino {
         Eq,
         scale::Encode,
         scale::Decode,
-        ink_storage::traits::SpreadLayout,
-        ink_storage::traits::PackedLayout,
+        SpreadLayout,
+        PackedLayout,
     )]
     #[cfg_attr(
         feature = "std",
@@ -70,6 +74,7 @@ mod metasino {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
         pub fn new(required_start_bet: Balance) -> Self {
+            ink_env::debug_print!("Metasino::new()");
             if required_start_bet <= 0 {
                 panic!("Required start bet must be greater than 0");
             }
@@ -79,6 +84,8 @@ mod metasino {
                 initiator: Self::env().caller(),
                 required_start_bet,
             });
+
+            
             Self {
                 initializer: Self::env().caller(),
                 required_start_bet,
@@ -136,6 +143,7 @@ mod metasino {
         }
 
         /// Guarding the contract from being executed in a wrong state.
+        #[inline]
         fn table_status_guard(&self){
             if self.state == STATE::PLAYING {
                 panic!("Game is ongoing!!");
@@ -146,9 +154,29 @@ mod metasino {
             }
         }
 
+        // #[ink(message)]
+        // pub fn get_table_state(&self) -> STATE {
+        //     self.state
+        // }
+
         #[ink(message)]
-        pub fn get_table_state(&self) -> STATE {
-            self.state
+        pub fn is_table_full(&self) -> bool {
+            self.get_players_count() >= MAX_PLAYERS
+        }
+
+        #[ink(message)]
+        pub fn is_table_status_staging(&self) -> bool {
+            self.state == STATE::STAGING
+        }
+
+        #[ink(message)]
+        pub fn is_table_status_playing(&self) -> bool {
+            self.state == STATE::PLAYING
+        }
+
+        #[ink(message)]
+        pub fn is_table_status_ended(&self) -> bool {
+            self.state == STATE::ENDED
         }
 
         /// Get the current number of players in the table.
@@ -202,7 +230,9 @@ mod metasino {
             assert_eq!(accounts.alice, metasino.initializer);
             assert_eq!(metasino.get_players_count(), 1);
             assert_eq!(metasino.get_accumulated_pot(), 100);
-            assert_eq!(metasino.get_table_state(), STATE::STAGING);
+            assert_eq!(metasino.is_table_status_staging(), true);
+            assert_eq!(metasino.is_table_status_playing(), false);
+            assert_eq!(metasino.is_table_status_ended(), false);
         }
 
         #[ink::test]
@@ -225,7 +255,9 @@ mod metasino {
             assert_eq!(metasino.get_accumulated_pot(), 200);
             assert_eq!(metasino.get_players()[0], accounts.alice);
             assert_eq!(metasino.get_players()[1], accounts.bob);
-            assert_eq!(metasino.get_table_state(), STATE::STAGING);
+            assert_eq!(metasino.is_table_status_staging(), true);
+            assert_eq!(metasino.is_table_status_playing(), false);
+            assert_eq!(metasino.is_table_status_ended(), false);
             assert_eq!(metasino.get_required_start_bet(), 100);
         }
 
@@ -256,7 +288,9 @@ mod metasino {
             ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.charlie);
             metasino.register_player(100);
             metasino.start_game();
-            assert_eq!(metasino.get_table_state(), STATE::PLAYING);
+            assert_eq!(metasino.is_table_status_staging(), false);
+            assert_eq!(metasino.is_table_status_playing(), true);
+            assert_eq!(metasino.is_table_status_ended(), false);
         }
 
         #[ink::test]
