@@ -154,30 +154,18 @@ mod metasino {
             }
         }
 
-        // #[ink(message)]
-        // pub fn get_table_state(&self) -> STATE {
-        //     self.state
-        // }
+        /// Get the current state of the table.
+        #[ink(message)]
+        pub fn get_table_state(&self) -> STATE {
+            self.state
+        }
 
+        /// check if the table is fully occupied.
         #[ink(message)]
         pub fn is_table_full(&self) -> bool {
             self.get_players_count() >= MAX_PLAYERS
         }
 
-        #[ink(message)]
-        pub fn is_table_status_staging(&self) -> bool {
-            self.state == STATE::STAGING
-        }
-
-        #[ink(message)]
-        pub fn is_table_status_playing(&self) -> bool {
-            self.state == STATE::PLAYING
-        }
-
-        #[ink(message)]
-        pub fn is_table_status_ended(&self) -> bool {
-            self.state == STATE::ENDED
-        }
 
         /// Get the current number of players in the table.
         #[ink(message)]
@@ -230,9 +218,7 @@ mod metasino {
             assert_eq!(accounts.alice, metasino.initializer);
             assert_eq!(metasino.get_players_count(), 1);
             assert_eq!(metasino.get_accumulated_pot(), 100);
-            assert_eq!(metasino.is_table_status_staging(), true);
-            assert_eq!(metasino.is_table_status_playing(), false);
-            assert_eq!(metasino.is_table_status_ended(), false);
+            assert_eq!(metasino.get_table_state(), STATE::STAGING);
         }
 
         #[ink::test]
@@ -255,9 +241,7 @@ mod metasino {
             assert_eq!(metasino.get_accumulated_pot(), 200);
             assert_eq!(metasino.get_players()[0], accounts.alice);
             assert_eq!(metasino.get_players()[1], accounts.bob);
-            assert_eq!(metasino.is_table_status_staging(), true);
-            assert_eq!(metasino.is_table_status_playing(), false);
-            assert_eq!(metasino.is_table_status_ended(), false);
+            assert_eq!(metasino.get_table_state(), STATE::STAGING);
             assert_eq!(metasino.get_required_start_bet(), 100);
         }
 
@@ -288,9 +272,7 @@ mod metasino {
             ink_env::test::set_caller::<ink_env::DefaultEnvironment>(accounts.charlie);
             metasino.register_player(100);
             metasino.start_game();
-            assert_eq!(metasino.is_table_status_staging(), false);
-            assert_eq!(metasino.is_table_status_playing(), true);
-            assert_eq!(metasino.is_table_status_ended(), false);
+            assert_eq!(metasino.get_table_state(), STATE::PLAYING);
         }
 
         #[ink::test]
