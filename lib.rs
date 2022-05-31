@@ -74,7 +74,6 @@ mod metasino {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
         pub fn new(required_start_bet: Balance) -> Self {
-            ink_env::debug_print!("Metasino::new()");
             if required_start_bet <= 0 {
                 panic!("Required start bet must be greater than 0");
             }
